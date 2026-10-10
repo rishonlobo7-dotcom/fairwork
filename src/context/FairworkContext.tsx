@@ -119,7 +119,16 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [projects, activeProjectId]);
 
   const agreement = useMemo(() => {
-    return agreements.find((a) => a.projectId === activeProject.id) || agreements[0];
+    // Prefer matching activeAgreementId from activeProject, otherwise highest version for the project
+    if (activeProject.activeAgreementId) {
+      const found = agreements.find((a) => a.id === activeProject.activeAgreementId);
+      if (found) return found;
+    }
+    const projectAgreements = agreements.filter((a) => a.projectId === activeProject.id);
+    if (projectAgreements.length > 0) {
+      return [...projectAgreements].sort((a, b) => b.versionNumber - a.versionNumber)[0];
+    }
+    return agreements[0];
   }, [agreements, activeProject]);
 
   const [events, setEvents] = useState<ActivityEvent[]>([
@@ -412,7 +421,14 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleProposeAmendment = async (newTerms: AgreementStructuredTerms) => {
     try {
       const vNext = await createAgreementRevision(agreement, newTerms, currentUser.id);
-      setAgreements((prev) => prev.map((a) => (a.id === agreement.id ? vNext : a)));
+      // Mark old agreement version inactive and append new vNext
+      setAgreements((prev) => [
+        ...prev.map((a) => (a.id === agreement.id ? { ...a, isActive: false } : a)),
+        vNext,
+      ]);
+      setProjects((prev) =>
+        prev.map((p) => (p.id === activeProject.id ? { ...p, activeAgreementId: vNext.id } : p))
+      );
       addEvent(
         createActivityEvent({
           actor: currentUser,

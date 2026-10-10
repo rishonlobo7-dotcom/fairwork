@@ -53,7 +53,7 @@ export const initialProjects: Project[] = [
     startDate: '2026-02-01',
     targetCompletionDate: '2026-04-30',
     status: 'ACTIVE',
-    activeAgreementId: 'agr_00_v1',
+    activeAgreementId: 'agr_00_v2',
     createdAt: '2026-02-01T09:00:00Z',
     updatedAt: '2026-02-20T10:00:00Z',
   },
@@ -105,13 +105,14 @@ export const initialProjects: Project[] = [
 ];
 
 export const initialAgreements: Agreement[] = [
+  // E-commerce Website Platform - v1 (Archived historical base version)
   {
     id: 'agr_00_v1',
     projectId: 'prj_00',
     versionNumber: 1,
     structuredTerms: {
-      scopeSummary: 'Design and build modern E-commerce website with responsive design, product catalog, cart, and payment checkout.',
-      deliverablesSummary: 'Figma prototypes, Next.js frontend repository, Express/Node API backend, and deployment documentation.',
+      scopeSummary: 'Design and build modern E-commerce website with responsive design, basic product catalog, cart, and payment checkout.',
+      deliverablesSummary: 'Figma prototypes, Next.js frontend repository, Express/Node API backend, and basic deployment guide.',
       intellectualPropertyClause: 'ON_PAYMENT',
       confidentiality: true,
       governingLaw: 'Commercial Arbitration Rules',
@@ -130,16 +131,61 @@ export const initialAgreements: Agreement[] = [
     acceptedBy: {
       client_01: {
         acceptedAt: '2026-02-01T09:15:00Z',
-        signatureHash: 'sig_client01_ecom_v1',
+        signatureHash: 'sig_client01_ecom_v1_00a1',
       },
       freelancer_01: {
         acceptedAt: '2026-02-01T09:45:00Z',
-        signatureHash: 'sig_free01_ecom_v1',
+        signatureHash: 'sig_free01_ecom_v1_88b2',
+      },
+    },
+    isActive: false, // Superseded by v2
+    agreementHash: 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6',
+    createdAt: '2026-02-01T09:15:00Z',
+  },
+  // E-commerce Website Platform - v2 (Current Active Version with Enhanced Performance SLA & 2-revision cap)
+  {
+    id: 'agr_00_v2',
+    projectId: 'prj_00',
+    versionNumber: 2,
+    structuredTerms: {
+      scopeSummary: 'Design and build modern E-commerce website with responsive design, product catalog, instant search filtering, cart state persistence, and automated payment webhook reconciliation.',
+      deliverablesSummary: 'Figma interactive component library, Next.js production frontend (Lighthouse >= 90), Node.js idempotent payment API, and Docker CI/CD deployment runbook.',
+      intellectualPropertyClause: 'ON_PAYMENT',
+      confidentiality: true,
+      governingLaw: 'Commercial Arbitration Rules',
+      customClauses: [
+        {
+          title: 'Acceptance Verification',
+          content: 'Every milestone must be independently verified against agreed acceptance criteria before funds release.',
+        },
+        {
+          title: 'Escrow Requirement',
+          content: 'Freelancer shall not begin work on any milestone until funds are verified in escrow.',
+        },
+        {
+          title: 'Performance & Lighthouse SLA',
+          content: 'Frontend deliverable must attain a minimum Google Lighthouse performance score of 90 on mobile & desktop before milestone sign-off.',
+        },
+        {
+          title: 'Review Window & Revision Limits',
+          content: 'Client agrees to review submitted deliverables within 5 calendar days. Up to 2 standard revisions included per milestone before formal amendment.',
+        },
+      ],
+    },
+    proposedBy: 'client_01',
+    acceptedBy: {
+      client_01: {
+        acceptedAt: '2026-02-12T10:00:00Z',
+        signatureHash: 'sig_client01_ecom_v2_f81c',
+      },
+      freelancer_01: {
+        acceptedAt: '2026-02-12T10:30:00Z',
+        signatureHash: 'sig_free01_ecom_v2_93d4',
       },
     },
     isActive: true,
-    agreementHash: 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6',
-    createdAt: '2026-02-01T09:15:00Z',
+    agreementHash: '3a7c9d1e2f4b5a6c8e0d1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c',
+    createdAt: '2026-02-12T10:00:00Z',
   },
   {
     id: 'agr_01_v1',

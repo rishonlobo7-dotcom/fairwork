@@ -42,7 +42,8 @@ export const ProjectDetailPage: React.FC = () => {
   const {
     projects,
     activeProject,
-    agreement,
+    agreements,
+    agreement: defaultAgreement,
     milestones,
     deliveries,
     reviews,
@@ -66,6 +67,12 @@ export const ProjectDetailPage: React.FC = () => {
 
   // Selected project
   const project = projects.find((p) => p.id === id) || activeProject;
+  const projectAgreement =
+    (project.activeAgreementId && agreements.find((a) => a.id === project.activeAgreementId)) ||
+    agreements.find((a) => a.projectId === project.id && a.isActive) ||
+    agreements.find((a) => a.projectId === project.id) ||
+    defaultAgreement;
+
   const projectMilestones = milestones.filter((m) => m.projectId === project.id);
   const projectDeliveries = deliveries.filter((d) =>
     projectMilestones.some((m) => m.id === d.milestoneId)
@@ -86,10 +93,10 @@ export const ProjectDetailPage: React.FC = () => {
 
   const client = allUsers[project.clientId];
   const freelancer = allUsers[project.freelancerId];
-  const clientAccepted = Boolean(agreement.acceptedBy[project.clientId]);
-  const freelancerAccepted = Boolean(agreement.acceptedBy[project.freelancerId]);
+  const clientAccepted = Boolean(projectAgreement.acceptedBy[project.clientId]);
+  const freelancerAccepted = Boolean(projectAgreement.acceptedBy[project.freelancerId]);
   const isParticipant = currentUser.id === project.clientId || currentUser.id === project.freelancerId;
-  const userHasAccepted = Boolean(agreement.acceptedBy[currentUser.id]);
+  const userHasAccepted = Boolean(projectAgreement.acceptedBy[currentUser.id]);
 
   // Derived progress and funding statistics
   const completedMilestones = projectMilestones.filter((m) => m.status === 'RELEASED');
@@ -546,7 +553,7 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFECE6] pb-3">
               <div>
                 <h3 className="text-base font-bold text-[#1C1917]">
-                  Verifiable Agreement Specification (v{agreement.versionNumber})
+                  Verifiable Agreement Specification (v{projectAgreement.versionNumber})
                 </h3>
                 <p className="text-xs text-[#605A53] mt-0.5">
                   Cryptographically fingerprinted terms binding both parties.
@@ -555,12 +562,12 @@ export const ProjectDetailPage: React.FC = () => {
 
               <span
                 className={`text-xs px-2.5 py-1 rounded font-bold border ${
-                  agreement.isActive
+                  projectAgreement.isActive
                     ? 'bg-[#EBF4EE] text-[#285C42] border-[#C2DEC9]'
                     : 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
                 }`}
               >
-                {agreement.isActive ? 'ACTIVE & BINDING' : 'PENDING COUNTERSIGNATURE'}
+                {projectAgreement.isActive ? 'ACTIVE & BINDING' : 'PENDING COUNTERSIGNATURE'}
               </span>
             </div>
 
@@ -570,7 +577,7 @@ export const ProjectDetailPage: React.FC = () => {
                   Scope Summary
                 </span>
                 <p className="p-3 rounded-lg bg-[#FAF7F2] border border-[#E5DFD5] mt-1">
-                  {agreement.structuredTerms.scopeSummary}
+                  {projectAgreement.structuredTerms.scopeSummary}
                 </p>
               </div>
 
@@ -580,9 +587,9 @@ export const ProjectDetailPage: React.FC = () => {
                     IP Assignment
                   </span>
                   <span className="font-semibold block mt-0.5">
-                    {agreement.structuredTerms.intellectualPropertyClause === 'ON_PAYMENT'
+                    {projectAgreement.structuredTerms.intellectualPropertyClause === 'ON_PAYMENT'
                       ? 'Transfers Upon Escrow Release'
-                      : agreement.structuredTerms.intellectualPropertyClause}
+                      : projectAgreement.structuredTerms.intellectualPropertyClause}
                   </span>
                 </div>
 
@@ -591,7 +598,7 @@ export const ProjectDetailPage: React.FC = () => {
                     Governing Law
                   </span>
                   <span className="font-semibold block mt-0.5">
-                    {agreement.structuredTerms.governingLaw || 'Commercial Arbitration Rules'}
+                    {projectAgreement.structuredTerms.governingLaw || 'Commercial Arbitration Rules'}
                   </span>
                 </div>
               </div>
@@ -618,7 +625,7 @@ export const ProjectDetailPage: React.FC = () => {
 
               <div className="p-3 rounded-lg bg-[#FAF7F2] border border-[#E5DFD5] text-[11px] font-mono break-all">
                 <span className="text-[#8A837A] block mb-0.5">SHA-256 Agreement Hash:</span>
-                <code>{agreement.agreementHash}</code>
+                <code>{projectAgreement.agreementHash}</code>
               </div>
             </div>
           </Card>
