@@ -4,7 +4,7 @@
  * Workflow: AGREEMENT -> DELIVERABLE -> DECISION -> PAYMENT
  */
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'USDC';
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'USDC' | 'INR';
 
 export type UserRole = 'CLIENT' | 'FREELANCER' | 'ADMIN' | 'ARBITRATOR';
 

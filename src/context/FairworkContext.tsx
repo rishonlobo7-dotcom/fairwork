@@ -17,9 +17,11 @@ import {
 import {
   initialAgreements,
   initialDeliveries,
+  initialDisputes,
   initialMilestones,
   initialPayments,
   initialProjects,
+  initialReviews,
   mockUsers,
 } from '../data/mockData';
 import { deriveProjectFinancials, DerivedProjectFinancials } from '../core/money';
@@ -46,6 +48,7 @@ interface FairworkContextType {
   activeProject: Project;
   setActiveProjectId: (id: string) => void;
   agreement: Agreement;
+  agreements: Agreement[];
   milestones: Milestone[];
   deliveries: Delivery[];
   reviews: Review[];
@@ -76,7 +79,10 @@ interface FairworkContextType {
   handleAcceptAgreement: () => void;
   handleProposeAmendment: (newTerms: AgreementStructuredTerms) => Promise<void>;
   handleRaiseDispute: (milestoneId: string, reason: string) => void;
+  handleAddDisputeMessage: (milestoneId: string, message: string) => void;
+  handleAddEvidence: (milestoneId: string, title: string, urlOrContent: string) => void;
   handleProposeSettlement: (milestoneId: string, proposal: SettlementProposal) => void;
+  handleRespondSettlement: (milestoneId: string, accept: boolean) => void;
   handleExecuteSettlement: (milestoneId: string, proposal: SettlementProposal) => void;
   handleCreateProject: (params: {
     title: string;
@@ -98,15 +104,23 @@ const FairworkContext = createContext<FairworkContextType | undefined>(undefined
 
 export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(mockUsers.client_01);
-  const [projects, setProjects] = useState<Project[]>([initialProject]);
-  const [activeProjectId] = useState<string>(initialProject.id);
-  const [agreement, setAgreement] = useState<Agreement>(initialAgreement);
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [activeProjectId, setActiveProjectId] = useState<string>(initialProjects[0].id);
+  const [agreements, setAgreements] = useState<Agreement[]>(initialAgreements);
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
-  const [disputes, setDisputes] = useState<Record<string, Dispute>>({});
+  const [disputes, setDisputes] = useState<Record<string, Dispute>>(initialDisputes);
   const [toast, setToast] = useState<ToastProps | null>(null);
+
+  const activeProject = useMemo(() => {
+    return projects.find((p) => p.id === activeProjectId) || projects[0];
+  }, [projects, activeProjectId]);
+
+  const agreement = useMemo(() => {
+    return agreements.find((a) => a.projectId === activeProject.id) || agreements[0];
+  }, [agreements, activeProject]);
 
   const [events, setEvents] = useState<ActivityEvent[]>([
     {
@@ -139,10 +153,6 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       transactionReference: 'sim_tx_dep_9941a87b',
     },
   ]);
-
-  const activeProject = useMemo(() => {
-    return projects.find((p) => p.id === activeProjectId) || projects[0];
-  }, [projects, activeProjectId]);
 
   const financials = useMemo(() => {
     return deriveProjectFinancials(activeProject, milestones);
@@ -368,7 +378,7 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         activeProject.clientId,
         activeProject.freelancerId
       );
-      setAgreement(updated);
+      setAgreements((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
       addEvent(
         createActivityEvent({
           actor: currentUser,
@@ -402,7 +412,7 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleProposeAmendment = async (newTerms: AgreementStructuredTerms) => {
     try {
       const vNext = await createAgreementRevision(agreement, newTerms, currentUser.id);
-      setAgreement(vNext);
+      setAgreements((prev) => prev.map((a) => (a.id === agreement.id ? vNext : a)));
       addEvent(
         createActivityEvent({
           actor: currentUser,
@@ -487,13 +497,75 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // 8. Propose Settlement
+  // 8. Add Dispute Message
+  const handleAddDisputeMessage = (milestoneId: string, message: string) => {
+    const dispute = disputes[milestoneId];
+    if (!dispute || !message.trim()) return;
+
+    const newMsg = {
+      id: `msg_${Date.now()}`,
+      authorId: currentUser.id,
+      message,
+      timestamp: new Date().toISOString(),
+    };
+
+    setDisputes((prev) => ({
+      ...prev,
+      [milestoneId]: {
+        ...prev[milestoneId],
+        responses: [...(prev[milestoneId]?.responses || []), newMsg],
+      },
+    }));
+
+    addEvent(
+      createActivityEvent({
+        actor: currentUser,
+        eventType: 'DISPUTE_OPENED',
+        projectId: activeProject.id,
+        milestoneId,
+        details: `${currentUser.displayName} posted response to dispute dialogue.`,
+      })
+    );
+  };
+
+  // 9. Add Dispute Evidence
+  const handleAddEvidence = (milestoneId: string, title: string, urlOrContent: string) => {
+    const dispute = disputes[milestoneId];
+    if (!dispute || !title.trim()) return;
+
+    const newEvidence = {
+      id: `ev_${Date.now()}`,
+      title,
+      urlOrContent,
+      sha256Hash: `hash_ev_${Date.now().toString(16)}`,
+      submittedBy: currentUser.id,
+      timestamp: new Date().toISOString(),
+    };
+
+    setDisputes((prev) => ({
+      ...prev,
+      [milestoneId]: {
+        ...prev[milestoneId],
+        evidenceReferences: [...(prev[milestoneId]?.evidenceReferences || []), newEvidence],
+        status: 'EVIDENCE_SUBMITTED',
+      },
+    }));
+
+    showToast({
+      type: 'info',
+      title: 'Evidence Recorded',
+      message: `"${title}" attached with SHA-256 integrity hash.`,
+    });
+  };
+
+  // 10. Propose Settlement
   const handleProposeSettlement = (milestoneId: string, proposal: SettlementProposal) => {
     setDisputes((prev) => ({
       ...prev,
       [milestoneId]: {
         ...prev[milestoneId],
         settlementProposal: proposal,
+        status: 'SETTLEMENT_PROPOSED',
       },
     }));
 
@@ -504,7 +576,55 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   };
 
-  // 9. Execute Settlement
+  // 11. Respond to Settlement (Accept or Reject)
+  const handleRespondSettlement = (milestoneId: string, accept: boolean) => {
+    const dispute = disputes[milestoneId];
+    if (!dispute || !dispute.settlementProposal) return;
+
+    const isClient = currentUser.id === activeProject.clientId;
+    const updatedProposal: SettlementProposal = {
+      ...dispute.settlementProposal,
+      acceptedByClient: isClient ? accept : dispute.settlementProposal.acceptedByClient,
+      acceptedByFreelancer: !isClient ? accept : dispute.settlementProposal.acceptedByFreelancer,
+    };
+
+    if (!accept) {
+      setDisputes((prev) => ({
+        ...prev,
+        [milestoneId]: {
+          ...prev[milestoneId],
+          settlementProposal: updatedProposal,
+          status: 'OPEN',
+        },
+      }));
+      showToast({
+        type: 'warning',
+        title: 'Settlement Proposal Rejected',
+        message: 'The settlement proposal was declined. Milestone remains frozen in dispute.',
+      });
+      return;
+    }
+
+    // Both accepted? Execute settlement automatically!
+    if (updatedProposal.acceptedByClient && updatedProposal.acceptedByFreelancer) {
+      handleExecuteSettlement(milestoneId, updatedProposal);
+    } else {
+      setDisputes((prev) => ({
+        ...prev,
+        [milestoneId]: {
+          ...prev[milestoneId],
+          settlementProposal: updatedProposal,
+        },
+      }));
+      showToast({
+        type: 'success',
+        title: 'Settlement Accepted',
+        message: 'Your consent has been recorded. Awaiting counterparty acceptance to execute escrow split.',
+      });
+    }
+  };
+
+  // 12. Execute Settlement
   const handleExecuteSettlement = (milestoneId: string, proposal: SettlementProposal) => {
     const milestone = milestones.find((m) => m.id === milestoneId);
     const dispute = disputes[milestoneId];
@@ -588,8 +708,38 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updatedAt: new Date().toISOString(),
     };
 
+    const newAgreementId = `agr_${newId}_v1`;
+    const newAgreement: Agreement = {
+      id: newAgreementId,
+      projectId: newId,
+      versionNumber: 1,
+      structuredTerms: {
+        scopeSummary: params.description,
+        deliverablesSummary: `${params.milestones.length} verifiable milestones.`,
+        intellectualPropertyClause: 'ON_PAYMENT',
+        confidentiality: true,
+        governingLaw: 'Decentralized Verifiable Protocol (Fairwork Standard)',
+        customClauses: [
+          { title: 'Payment Release', content: 'Client explicit sign-off required upon deliverable verification.' },
+          { title: 'Dispute Framework', content: 'Mutual settlement proposal followed by neutral arbitration.' },
+        ],
+      },
+      proposedBy: currentUser.id,
+      acceptedBy: {
+        [currentUser.id]: {
+          acceptedAt: new Date().toISOString(),
+          signatureHash: `sig_${currentUser.id}_${Date.now()}`,
+        },
+      },
+      isActive: false,
+      agreementHash: `hash_agr_${newId}_v1`,
+      createdAt: new Date().toISOString(),
+    };
+
     setProjects((prev) => [newProject, ...prev]);
+    setAgreements((prev) => [newAgreement, ...prev]);
     setMilestones((prev) => [...createdMilestones, ...prev]);
+    setActiveProjectId(newId);
 
     addEvent(
       createActivityEvent({
@@ -617,7 +767,9 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         allUsers: mockUsers,
         projects,
         activeProject,
+        setActiveProjectId,
         agreement,
+        agreements,
         milestones,
         deliveries,
         reviews,
@@ -635,7 +787,10 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         handleAcceptAgreement,
         handleProposeAmendment,
         handleRaiseDispute,
+        handleAddDisputeMessage,
+        handleAddEvidence,
         handleProposeSettlement,
+        handleRespondSettlement,
         handleExecuteSettlement,
         handleCreateProject,
       }}

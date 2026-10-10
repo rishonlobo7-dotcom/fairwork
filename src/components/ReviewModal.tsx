@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
-import { Eye, X, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
+import {
+  Eye,
+  X,
+  CheckCircle2,
+  RotateCcw,
+  AlertTriangle,
+  FileText,
+  Fingerprint,
+  ExternalLink,
+  ShieldAlert,
+  CheckSquare,
+} from 'lucide-react';
 import { Delivery, Milestone, ReviewDecision } from '../types/fairwork';
+import { Button } from './ui/Button';
 
 interface ReviewModalProps {
   milestone: Milestone;
@@ -40,6 +52,17 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     }));
   };
 
+  const handleDecisionChange = (newDecision: ReviewDecision) => {
+    setDecision(newDecision);
+    if (newDecision === 'APPROVED') {
+      setFeedback('All acceptance criteria have been verified and confirmed.');
+    } else if (newDecision === 'REVISION_REQUESTED') {
+      setFeedback('Please address the unchecked acceptance criteria and resubmit revision.');
+    } else if (newDecision === 'DISPUTED') {
+      setFeedback('Delivery does not meet fundamental contractual specifications.');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const criteriaChecklist = milestone.acceptanceCriteria.map((c) => ({
@@ -51,137 +74,225 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     onClose();
   };
 
+  const satisfiedCount = milestone.acceptanceCriteria.filter((c) => checklist[c]).length;
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-teal-500" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Review Milestone Deliverable
-            </h3>
+    <div className="fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-xl w-full p-6 border border-[#E5DFD5] shadow-xl max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#EFECE6]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] text-[#264235] border border-[#E5DFD5] flex items-center justify-center">
+              <Eye className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#1C1917]">
+                Review Deliverable: {milestone.title}
+              </h3>
+              <p className="text-xs text-[#605A53]">
+                Inspect evidence against contract criteria before taking a payment action
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="p-1.5 rounded-lg text-[#8A837A] hover:text-[#1C1917] hover:bg-[#FAF7F2] cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Deliverable Snapshot */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-xs">
-            <div className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
-              Revision #{delivery.revisionNumber} Notes:
+          {/* Deliverable Evidence Snapshot */}
+          <div className="p-4 rounded-xl bg-[#FAF7F2] border border-[#E5DFD5] text-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-[#1C1917]">
+                Revision #{delivery.revisionNumber} Submission Notes:
+              </span>
+              <span className="text-[11px] font-mono text-[#8A837A]">
+                {new Date(delivery.timestamp).toLocaleString()}
+              </span>
             </div>
-            <p className="text-slate-600 dark:text-slate-300 italic mb-2">
+            <p className="text-[#605A53] italic bg-white p-2.5 rounded-lg border border-[#E5DFD5]">
               &ldquo;{delivery.notes}&rdquo;
             </p>
-            <div className="text-[11px] font-mono text-slate-400">
-              Fingerprint: {delivery.deliveryHash?.slice(0, 32)}...
-            </div>
+
+            {/* Attached Files & Hashes */}
+            {delivery.files.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[11px] font-bold text-[#8A837A] uppercase block">
+                  Attached Files &amp; Integrity Hash:
+                </span>
+                {delivery.files.map((file, fIdx) => (
+                  <div
+                    key={fIdx}
+                    className="p-2 rounded-lg bg-white border border-[#E5DFD5] flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-3.5 h-3.5 text-[#264235]" />
+                      <span className="font-medium text-[#1C1917] truncate">{file.name}</span>
+                    </div>
+                    <code className="text-[10px] font-mono text-[#8A837A] shrink-0 ml-2">
+                      {file.sha256Hash?.slice(0, 16)}...
+                    </code>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* External URL */}
+            {delivery.externalUrl && (
+              <div className="pt-1 flex items-center justify-between text-[11px]">
+                <span className="text-[#8A837A]">External Demo / Repository:</span>
+                <a
+                  href={delivery.externalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#264235] font-semibold hover:underline flex items-center gap-1"
+                >
+                  Inspect URL <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
           </div>
 
-          {/* Criteria Checklist Verification */}
+          {/* Criteria Verification Checklist */}
           <div>
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-              Acceptance Criteria Verification
-            </span>
-            <div className="space-y-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-[#1C1917] flex items-center gap-1.5">
+                <CheckSquare className="w-3.5 h-3.5 text-[#264235]" />
+                Acceptance Criteria Verification Checklist
+              </span>
+              <span className="text-[11px] font-semibold text-[#8A837A]">
+                {satisfiedCount} of {milestone.acceptanceCriteria.length} Satisfied
+              </span>
+            </div>
+            <div className="space-y-1.5">
               {milestone.acceptanceCriteria.map((criterion, idx) => (
                 <label
                   key={idx}
-                  className="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer text-xs"
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg border border-[#E5DFD5] bg-white hover:bg-[#FAF7F2] cursor-pointer text-xs"
                 >
                   <input
                     type="checkbox"
                     checked={Boolean(checklist[criterion])}
                     onChange={() => toggleCriteria(criterion)}
-                    className="rounded text-teal-600 mt-0.5 focus:ring-teal-500"
+                    className="mt-0.5 rounded text-[#264235] focus:ring-[#264235]"
                   />
-                  <span className="text-slate-800 dark:text-slate-200">{criterion}</span>
+                  <span className="text-[#1C1917] leading-snug">{criterion}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Decision Selection */}
+          {/* Decision Selector: 3 Explicit Options */}
           <div>
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-              Review Decision
+            <span className="text-xs font-bold text-[#1C1917] block mb-2">
+              Select Client Decision:
             </span>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => setDecision('APPROVED')}
-                className={`p-2.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 border transition ${
+                onClick={() => handleDecisionChange('APPROVED')}
+                className={`p-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition cursor-pointer ${
                   decision === 'APPROVED'
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    ? 'bg-[#EBF4EE] border-[#C2DEC9] text-[#285C42] ring-2 ring-[#285C42]/20'
+                    : 'bg-white border-[#E5DFD5] text-[#605A53] hover:bg-[#FAF7F2]'
                 }`}
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>Approve</span>
+                <CheckCircle2 className="w-4 h-4 text-[#285C42]" />
+                <span>Approve Milestone</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setDecision('REVISION_REQUESTED')}
-                className={`p-2.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 border transition ${
+                onClick={() => handleDecisionChange('REVISION_REQUESTED')}
+                className={`p-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition cursor-pointer ${
                   decision === 'REVISION_REQUESTED'
-                    ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-500 text-orange-700 dark:text-orange-400'
-                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    ? 'bg-[#FEF3C7] border-[#FDE68A] text-[#92400E] ring-2 ring-[#92400E]/20'
+                    : 'bg-white border-[#E5DFD5] text-[#605A53] hover:bg-[#FAF7F2]'
                 }`}
               >
-                <RotateCcw className="w-4 h-4 text-orange-500" />
-                <span>Request Revision</span>
+                <RotateCcw className="w-4 h-4 text-[#92400E]" />
+                <span>Request Revisions</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setDecision('DISPUTED')}
-                className={`p-2.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 border transition ${
+                onClick={() => handleDecisionChange('DISPUTED')}
+                className={`p-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition cursor-pointer ${
                   decision === 'DISPUTED'
-                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 text-rose-700 dark:text-rose-400'
-                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    ? 'bg-[#FEE2E2] border-[#FECACA] text-[#991B1B] ring-2 ring-[#991B1B]/20'
+                    : 'bg-white border-[#E5DFD5] text-[#605A53] hover:bg-[#FAF7F2]'
                 }`}
               >
-                <AlertTriangle className="w-4 h-4 text-rose-500" />
-                <span>Dispute</span>
+                <ShieldAlert className="w-4 h-4 text-[#991B1B]" />
+                <span>Raise Dispute</span>
               </button>
             </div>
           </div>
 
-          {/* Feedback */}
+          {/* Feedback & Instructions */}
           <div>
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              Feedback &amp; Rationale *
+            <label className="text-xs font-bold text-[#1C1917] block mb-1">
+              Feedback &amp; Formal Decision Notes *
             </label>
             <textarea
               required
               rows={3}
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Provide constructive, verifiable reasons for approval, revisions, or escalation..."
-              className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Provide clear rationale for your decision..."
+              className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-[#1C1917] focus:outline-none focus:ring-1 focus:ring-[#264235]"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <button
+          {/* Decision Impact Warning */}
+          {decision === 'APPROVED' && (
+            <div className="p-3 rounded-xl bg-[#EBF4EE]/50 border border-[#C2DEC9] text-xs text-[#285C42] flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>Consequence for Payment:</strong> Approving unlocks the milestone for escrow release. Funds will be ready to release to the freelancer.
+              </span>
+            </div>
+          )}
+
+          {decision === 'REVISION_REQUESTED' && (
+            <div className="p-3 rounded-xl bg-[#FEF3C7]/50 border border-[#FDE68A] text-xs text-[#92400E] flex items-start gap-2">
+              <RotateCcw className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>Consequence:</strong> The milestone status resets to Revision Requested. The freelancer can review your feedback and resubmit. All previous revisions are preserved in history.
+              </span>
+            </div>
+          )}
+
+          {decision === 'DISPUTED' && (
+            <div className="p-3 rounded-xl bg-[#FEE2E2]/50 border border-[#FECACA] text-xs text-[#991B1B] flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>Rule 4 Enforced:</strong> Marking disputed immediately locks ordinary release. Neither party can release funds until mutual settlement or arbitration is resolved.
+              </span>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#EFECE6]">
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white shadow-sm transition"
+              variant="primary"
+              size="sm"
+              disabled={!feedback.trim()}
             >
-              Submit Review Decision
-            </button>
+              Submit Formal Review
+            </Button>
           </div>
         </form>
       </div>

@@ -10,6 +10,7 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   EUR: '€',
   GBP: '£',
   USDC: 'USDC ',
+  INR: '₹',
 };
 
 export const CURRENCY_DECIMALS: Record<Currency, number> = {
@@ -17,6 +18,7 @@ export const CURRENCY_DECIMALS: Record<Currency, number> = {
   EUR: 2,
   GBP: 2,
   USDC: 2, // Standardizing to 2 minor units for prototype
+  INR: 2,
 };
 
 /**
