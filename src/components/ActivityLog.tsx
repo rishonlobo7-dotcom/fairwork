@@ -21,7 +21,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ events }) => {
       case 'PAYMENT_RELEASED':
         return <CreditCard className="w-3.5 h-3.5 text-emerald-500" />;
       case 'DISPUTE_OPENED':
-      case 'DISPUTE_SETTLED':
+      case 'DISPUTE_RESOLVED':
+      case 'SETTLEMENT_PROPOSED':
+      case 'SETTLEMENT_ACCEPTED':
+      case 'EVIDENCE_ADDED':
         return <Scale className="w-3.5 h-3.5 text-rose-500" />;
       default:
         return <History className="w-3.5 h-3.5 text-slate-400" />;

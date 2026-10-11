@@ -14,14 +14,18 @@ import {
   ExternalLink,
   UserCheck,
   ChevronDown,
+  Sparkles,
+  PlayCircle,
 } from 'lucide-react';
 import { useFairwork } from '../../context/FairworkContext';
 import { Toast } from '../ui/Toast';
 import { UserRole } from '../../types/fairwork';
+import { DemoGuideModal } from '../demo/DemoGuideModal';
 
 export const AppShell: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [personaDropdownOpen, setPersonaDropdownOpen] = useState(false);
+  const [demoGuideOpen, setDemoGuideOpen] = useState(false);
   const { currentUser, allUsers, setCurrentUser, toast, dismissToast } = useFairwork();
   const location = useLocation();
   const navigate = useNavigate();
@@ -149,10 +153,22 @@ export const AppShell: React.FC = () => {
             </span>
           </div>
 
-          {/* Right Header Controls: Demo Label + Persona Switcher */}
-          <div className="flex items-center gap-3">
+          {/* Right Header Controls: Demo Walkthrough Button + Demo Label + Persona Switcher */}
+          <div className="flex items-center gap-2.5">
+            {/* Demo Walkthrough Trigger Pill */}
+            <button
+              onClick={() => setDemoGuideOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#264235] text-white hover:bg-[#1E352A] transition text-xs font-semibold shadow-xs cursor-pointer"
+            >
+              <PlayCircle className="w-3.5 h-3.5 text-[#FDE68A]" />
+              <span className="hidden sm:inline">Demo Guide</span>
+              <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded font-mono font-normal">
+                &lt;5m
+              </span>
+            </button>
+
             {/* Subtle Demo Disclosure Label */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FEF3C7]/60 border border-[#FDE68A] text-[#92400E] text-[11px] font-medium">
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FEF3C7]/60 border border-[#FDE68A] text-[#92400E] text-[11px] font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse" />
               <span>Simulated Escrow &bull; SHA-256 Provenance</span>
             </div>
@@ -253,6 +269,12 @@ export const AppShell: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Demo Guide Modal */}
+      <DemoGuideModal
+        isOpen={demoGuideOpen}
+        onClose={() => setDemoGuideOpen(false)}
+      />
     </div>
   );
 };

@@ -12,7 +12,7 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
 export const SettingsPage: React.FC = () => {
-  const { currentUser, allUsers, setCurrentUser, showToast } = useFairwork();
+  const { currentUser, allUsers, setCurrentUser, handleResetDemoData, showToast } = useFairwork();
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
@@ -120,6 +120,29 @@ export const SettingsPage: React.FC = () => {
               <span className="text-[10px] text-[#8A837A] font-mono">{u.role}</span>
             </button>
           ))}
+        </div>
+      </Card>
+
+      {/* Demo Sandbox Data Management Card */}
+      <Card className="p-6 space-y-4 border-[#FECACA] bg-[#FEF2F2]/40">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-[#991B1B] flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-[#991B1B]" />
+              Reset Demo Sandbox State
+            </h2>
+            <p className="text-xs text-[#7F1D1D] mt-1">
+              Restores all 3 hackathon demo projects (E-commerce ₹30k, Brand Identity ₹12k, 3D Portfolio ₹18k), milestones, review decisions, payments, and disputes back to the clean initial seed.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetDemoData}
+            className="border-[#FECACA] bg-white text-[#991B1B] hover:bg-[#FEE2E2] shrink-0"
+          >
+            Reset All Demo Data
+          </Button>
         </div>
       </Card>
 

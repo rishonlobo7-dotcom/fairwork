@@ -13,6 +13,12 @@ export const ProjectsPage: React.FC = () => {
 
   const isClient = currentUser.role === 'CLIENT';
 
+  // In accordance with RLS rules: Clients and Freelancers only view projects they participate in; Arbitrators/Admins view all
+  const accessibleProjects = projects.filter((p) => {
+    if (currentUser.role === 'ARBITRATOR' || currentUser.role === 'ADMIN') return true;
+    return p.clientId === currentUser.id || p.freelancerId === currentUser.id;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -40,7 +46,7 @@ export const ProjectsPage: React.FC = () => {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {projects.map((project) => {
+        {accessibleProjects.map((project) => {
           const projectMilestones = milestones.filter((m) => m.projectId === project.id);
           const completedCount = projectMilestones.filter((m) => m.status === 'RELEASED').length;
           const clientName = allUsers[project.clientId]?.displayName ?? 'Client';

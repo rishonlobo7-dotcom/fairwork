@@ -126,6 +126,32 @@ export const ProjectDetailPage: React.FC = () => {
     { id: 'disputes', label: 'Disputes', badge: projectDisputes.length > 0 ? projectDisputes.length : undefined, icon: <Scale className="w-3.5 h-3.5" /> },
   ];
 
+  // Access Control: Only Client, Freelancer, Arbitrators, or Admins can view project details
+  const hasAccess = isParticipant || currentUser.role === 'ARBITRATOR' || currentUser.role === 'ADMIN';
+
+  if (!hasAccess) {
+    return (
+      <div className="max-w-xl mx-auto my-12 p-8 rounded-2xl bg-white border border-[#FECACA] shadow-sm text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-[#FEF2F2] text-[#991B1B] flex items-center justify-center mx-auto">
+          <Scale className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-[#1C1917]">
+            Unauthorized Project Access (RLS Blocked)
+          </h2>
+          <p className="text-xs text-[#605A53] mt-1.5 leading-relaxed">
+            Under Row-Level Security rules, project workspaces and private contract deliverables are strictly restricted to assigned participants ({client?.displayName} &amp; {freelancer?.displayName}) and certified neutral arbitrators.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Button variant="primary" size="sm" onClick={() => navigate('/app/projects')}>
+            Return to Authorized Projects
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-16">
       {/* 1. PROJECT WORKSPACE HEADER */}
@@ -166,7 +192,7 @@ export const ProjectDetailPage: React.FC = () => {
                 leftIcon={<ShieldCheck className="w-3.5 h-3.5" />}
                 onClick={handleAcceptAgreement}
               >
-                Sign Agreement v{agreement.versionNumber}
+                Sign Agreement v{projectAgreement.versionNumber}
               </Button>
             )}
 
@@ -850,7 +876,7 @@ export const ProjectDetailPage: React.FC = () => {
         <MilestoneDetailModal
           milestone={selectedMilestoneForDetail}
           project={project}
-          agreement={agreement}
+          agreement={projectAgreement}
           currentUser={currentUser}
           deliveries={deliveries}
           reviews={reviews}
@@ -867,7 +893,7 @@ export const ProjectDetailPage: React.FC = () => {
       )}
 
       <AmendmentModal
-        currentAgreement={agreement}
+        currentAgreement={projectAgreement}
         isOpen={isAmendmentOpen}
         onClose={() => setIsAmendmentOpen(false)}
         onProposeAmendment={handleProposeAmendment}

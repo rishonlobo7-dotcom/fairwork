@@ -26,6 +26,8 @@ export function createActivityEvent(params: {
   details: string;
   metadata?: Record<string, unknown>;
   transactionReference?: string;
+  isSimulated?: boolean;
+  isOnChain?: boolean;
 }): ActivityEvent {
   return {
     id: `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -38,6 +40,8 @@ export function createActivityEvent(params: {
     details: params.details,
     metadata: params.metadata,
     transactionReference: params.transactionReference,
+    isSimulated: params.isSimulated ?? true,
+    isOnChain: params.isOnChain ?? false,
   };
 }
 
@@ -99,9 +103,12 @@ export async function submitMilestoneDelivery(params: {
 
   const updatedMilestone = transitionMilestone(params.milestone, 'SUBMITTED', context);
 
+  const eventType: ActivityEvent['eventType'] =
+    revisionNumber > 1 ? 'REVISED_DELIVERY_SUBMITTED' : 'DELIVERY_SUBMITTED';
+
   const event = createActivityEvent({
     actor: params.freelancer,
-    eventType: 'DELIVERY_SUBMITTED',
+    eventType,
     projectId: params.project.id,
     milestoneId: params.milestone.id,
     details: `Deliverable revision #${revisionNumber} submitted with ${params.files.length} files. Hash: ${hash.slice(0, 16)}...`,
@@ -172,9 +179,18 @@ export function reviewMilestoneDelivery(params: {
 
   const updatedMilestone = transitionMilestone(params.milestone, targetStatus, context);
 
+  let eventType: ActivityEvent['eventType'] = 'REVIEW_SUBMITTED';
+  if (params.decision === 'APPROVED') {
+    eventType = 'MILESTONE_APPROVED';
+  } else if (params.decision === 'REVISION_REQUESTED') {
+    eventType = 'REVISION_REQUESTED';
+  } else if (params.decision === 'DISPUTED') {
+    eventType = 'DISPUTE_OPENED';
+  }
+
   const event = createActivityEvent({
     actor: params.client,
-    eventType: 'REVIEW_SUBMITTED',
+    eventType,
     projectId: params.project.id,
     milestoneId: params.milestone.id,
     details: `Client decision: ${params.decision}. Feedback: "${params.feedback.slice(0, 60)}..."`,
@@ -333,7 +349,7 @@ export function executeDisputeSettlement(params: {
 
   events.push(createActivityEvent({
     actor: params.actor,
-    eventType: 'DISPUTE_SETTLED',
+    eventType: 'DISPUTE_RESOLVED',
     projectId: params.project.id,
     milestoneId: params.milestone.id,
     details: `Dispute mutually resolved. Payouts processed via simulated escrow.`,

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import {
   ActivityEvent,
   Agreement,
@@ -18,6 +18,7 @@ import {
   initialAgreements,
   initialDeliveries,
   initialDisputes,
+  initialEvents,
   initialMilestones,
   initialPayments,
   initialProjects,
@@ -39,6 +40,29 @@ import {
   submitMilestoneDelivery,
 } from '../core/workflow';
 import { ToastProps } from '../components/ui/Toast';
+
+const STORAGE_KEYS = {
+  USER: 'fairwork_demo_user_v1',
+  PROJECTS: 'fairwork_demo_projects_v1',
+  ACTIVE_PROJECT_ID: 'fairwork_demo_active_prj_v1',
+  AGREEMENTS: 'fairwork_demo_agreements_v1',
+  MILESTONES: 'fairwork_demo_milestones_v1',
+  DELIVERIES: 'fairwork_demo_deliveries_v1',
+  REVIEWS: 'fairwork_demo_reviews_v1',
+  PAYMENTS: 'fairwork_demo_payments_v1',
+  DISPUTES: 'fairwork_demo_disputes_v1',
+  EVENTS: 'fairwork_demo_events_v1',
+};
+
+function loadStored<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 interface FairworkContextType {
   currentUser: UserProfile;
@@ -88,7 +112,7 @@ interface FairworkContextType {
     title: string;
     description: string;
     budgetDollars: number;
-    currency: 'USD' | 'EUR' | 'GBP' | 'USDC';
+    currency: 'USD' | 'EUR' | 'GBP' | 'USDC' | 'INR';
     freelancerId: string;
     milestones: Array<{
       title: string;
@@ -98,28 +122,90 @@ interface FairworkContextType {
       acceptanceCriteria: string[];
     }>;
   }) => string;
+  handleResetDemoData: () => void;
 }
 
 const FairworkContext = createContext<FairworkContextType | undefined>(undefined);
 
 export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserProfile>(mockUsers.client_01);
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [activeProjectId, setActiveProjectId] = useState<string>(initialProjects[0].id);
-  const [agreements, setAgreements] = useState<Agreement[]>(initialAgreements);
-  const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
-  const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
-  const [reviews, setReviews] = useState<Review[]>(initialReviews);
-  const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
-  const [disputes, setDisputes] = useState<Record<string, Dispute>>(initialDisputes);
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() =>
+    loadStored<UserProfile>(STORAGE_KEYS.USER, mockUsers.client_01)
+  );
+  const [projects, setProjects] = useState<Project[]>(() =>
+    loadStored<Project[]>(STORAGE_KEYS.PROJECTS, initialProjects)
+  );
+  const [activeProjectId, setActiveProjectId] = useState<string>(() =>
+    loadStored<string>(STORAGE_KEYS.ACTIVE_PROJECT_ID, initialProjects[0].id)
+  );
+  const [agreements, setAgreements] = useState<Agreement[]>(() =>
+    loadStored<Agreement[]>(STORAGE_KEYS.AGREEMENTS, initialAgreements)
+  );
+  const [milestones, setMilestones] = useState<Milestone[]>(() =>
+    loadStored<Milestone[]>(STORAGE_KEYS.MILESTONES, initialMilestones)
+  );
+  const [deliveries, setDeliveries] = useState<Delivery[]>(() =>
+    loadStored<Delivery[]>(STORAGE_KEYS.DELIVERIES, initialDeliveries)
+  );
+  const [reviews, setReviews] = useState<Review[]>(() =>
+    loadStored<Review[]>(STORAGE_KEYS.REVIEWS, initialReviews)
+  );
+  const [payments, setPayments] = useState<PaymentRecord[]>(() =>
+    loadStored<PaymentRecord[]>(STORAGE_KEYS.PAYMENTS, initialPayments)
+  );
+  const [disputes, setDisputes] = useState<Record<string, Dispute>>(() =>
+    loadStored<Record<string, Dispute>>(STORAGE_KEYS.DISPUTES, initialDisputes)
+  );
+  const [events, setEvents] = useState<ActivityEvent[]>(() =>
+    loadStored<ActivityEvent[]>(STORAGE_KEYS.EVENTS, initialEvents)
+  );
   const [toast, setToast] = useState<ToastProps | null>(null);
+
+  // Sync state to localStorage for persistence across tab refresh
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
+  }, [projects]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_PROJECT_ID, JSON.stringify(activeProjectId));
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.AGREEMENTS, JSON.stringify(agreements));
+  }, [agreements]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MILESTONES, JSON.stringify(milestones));
+  }, [milestones]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DELIVERIES, JSON.stringify(deliveries));
+  }, [deliveries]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+  }, [reviews]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+  }, [payments]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DISPUTES, JSON.stringify(disputes));
+  }, [disputes]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+  }, [events]);
 
   const activeProject = useMemo(() => {
     return projects.find((p) => p.id === activeProjectId) || projects[0];
   }, [projects, activeProjectId]);
 
   const agreement = useMemo(() => {
-    // Prefer matching activeAgreementId from activeProject, otherwise highest version for the project
     if (activeProject.activeAgreementId) {
       const found = agreements.find((a) => a.id === activeProject.activeAgreementId);
       if (found) return found;
@@ -130,38 +216,6 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     return agreements[0];
   }, [agreements, activeProject]);
-
-  const [events, setEvents] = useState<ActivityEvent[]>([
-    {
-      id: 'evt_init_01',
-      timestamp: '2026-02-01T10:15:00Z',
-      actorId: 'client_01',
-      actorRole: 'CLIENT',
-      eventType: 'AGREEMENT_ACCEPTED',
-      projectId: 'prj_fairwork_demo',
-      details: 'Agreement v1 accepted and digitally signed by Nexus Ventures (Alice).',
-    },
-    {
-      id: 'evt_init_02',
-      timestamp: '2026-02-01T11:45:00Z',
-      actorId: 'freelancer_01',
-      actorRole: 'FREELANCER',
-      eventType: 'AGREEMENT_ACCEPTED',
-      projectId: 'prj_fairwork_demo',
-      details: 'Agreement v1 accepted and digitally signed by Bob Martinez. Agreement is now active.',
-    },
-    {
-      id: 'evt_init_03',
-      timestamp: '2026-02-02T12:00:00Z',
-      actorId: 'client_01',
-      actorRole: 'CLIENT',
-      eventType: 'MILESTONE_FUNDED',
-      projectId: 'prj_fairwork_demo',
-      milestoneId: 'ms_01',
-      details: 'Milestone 1 funded: $2,000.00 deposited into simulated escrow vault.',
-      transactionReference: 'sim_tx_dep_9941a87b',
-    },
-  ]);
 
   const financials = useMemo(() => {
     return deriveProjectFinancials(activeProject, milestones);
@@ -567,6 +621,16 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       },
     }));
 
+    addEvent(
+      createActivityEvent({
+        actor: currentUser,
+        eventType: 'EVIDENCE_ADDED',
+        projectId: dispute.projectId,
+        milestoneId,
+        details: `Evidence item "${title}" added with SHA-256 fingerprint.`,
+      })
+    );
+
     showToast({
       type: 'info',
       title: 'Evidence Recorded',
@@ -576,6 +640,7 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // 10. Propose Settlement
   const handleProposeSettlement = (milestoneId: string, proposal: SettlementProposal) => {
+    const dispute = disputes[milestoneId];
     setDisputes((prev) => ({
       ...prev,
       [milestoneId]: {
@@ -584,6 +649,16 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         status: 'SETTLEMENT_PROPOSED',
       },
     }));
+
+    addEvent(
+      createActivityEvent({
+        actor: currentUser,
+        eventType: 'SETTLEMENT_PROPOSED',
+        projectId: dispute?.projectId || activeProject.id,
+        milestoneId,
+        details: `Mutual settlement proposed by ${currentUser.displayName}: Freelancer payout ${proposal.freelancerAmountMinor / 100}, Client refund ${proposal.clientRefundMinor / 100}.`,
+      })
+    );
 
     showToast({
       type: 'info',
@@ -603,6 +678,26 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       acceptedByClient: isClient ? accept : dispute.settlementProposal.acceptedByClient,
       acceptedByFreelancer: !isClient ? accept : dispute.settlementProposal.acceptedByFreelancer,
     };
+
+    setDisputes((prev) => ({
+      ...prev,
+      [milestoneId]: {
+        ...prev[milestoneId],
+        settlementProposal: updatedProposal,
+      },
+    }));
+
+    if (accept) {
+      addEvent(
+        createActivityEvent({
+          actor: currentUser,
+          eventType: 'SETTLEMENT_ACCEPTED',
+          projectId: dispute.projectId,
+          milestoneId,
+          details: `${currentUser.displayName} accepted the settlement terms.`,
+        })
+      );
+    }
 
     if (!accept) {
       setDisputes((prev) => ({
@@ -682,7 +777,7 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     title: string;
     description: string;
     budgetDollars: number;
-    currency: 'USD' | 'EUR' | 'GBP' | 'USDC';
+    currency: 'USD' | 'EUR' | 'GBP' | 'USDC' | 'INR';
     freelancerId: string;
     milestones: Array<{
       title: string;
@@ -775,6 +870,30 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return newId;
   };
 
+  const handleResetDemoData = () => {
+    try {
+      Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // Ignore storage errors
+    }
+    setCurrentUser(mockUsers.client_01);
+    setProjects(initialProjects);
+    setActiveProjectId(initialProjects[0].id);
+    setAgreements(initialAgreements);
+    setMilestones(initialMilestones);
+    setDeliveries(initialDeliveries);
+    setReviews(initialReviews);
+    setPayments(initialPayments);
+    setDisputes(initialDisputes);
+    setEvents(initialEvents);
+
+    showToast({
+      type: 'success',
+      title: 'Demo State Reset',
+      message: 'Demo workspace restored to clean initial seed data (3 sample projects).',
+    });
+  };
+
   return (
     <FairworkContext.Provider
       value={{
@@ -809,6 +928,7 @@ export const FairworkProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         handleRespondSettlement,
         handleExecuteSettlement,
         handleCreateProject,
+        handleResetDemoData,
       }}
     >
       {children}

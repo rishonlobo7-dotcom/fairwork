@@ -237,11 +237,18 @@ export type ActivityEventType =
   | 'AGREEMENT_VERSIONED'
   | 'MILESTONE_CREATED'
   | 'MILESTONE_FUNDED'
+  | 'WORK_STARTED'
   | 'DELIVERY_SUBMITTED'
+  | 'REVISION_REQUESTED'
+  | 'REVISED_DELIVERY_SUBMITTED'
   | 'REVIEW_SUBMITTED'
+  | 'MILESTONE_APPROVED'
   | 'PAYMENT_RELEASED'
   | 'DISPUTE_OPENED'
-  | 'DISPUTE_SETTLED';
+  | 'EVIDENCE_ADDED'
+  | 'SETTLEMENT_PROPOSED'
+  | 'SETTLEMENT_ACCEPTED'
+  | 'DISPUTE_RESOLVED';
 
 export interface ActivityEvent {
   id: string;
@@ -254,4 +261,6 @@ export interface ActivityEvent {
   details: string;
   metadata?: Record<string, unknown>;
   transactionReference?: string;
+  isSimulated?: boolean;
+  isOnChain?: boolean;
 }

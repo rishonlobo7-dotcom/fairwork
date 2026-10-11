@@ -22,6 +22,7 @@ import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { formatMoney } from '../../core/money';
 import { PaymentRecord, Milestone } from '../../types/fairwork';
+import { web3Service, Web3WalletState } from '../../lib/web3Service';
 
 export const PaymentsPage: React.FC = () => {
   const {
@@ -32,11 +33,44 @@ export const PaymentsPage: React.FC = () => {
     currentUser,
     handleFundEscrow,
     handleReleasePayment,
+    showToast,
   } = useFairwork();
 
   const [selectedTx, setSelectedTx] = useState<PaymentRecord | null>(null);
   const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>('ALL');
   const [fundingMilestoneModal, setFundingMilestoneModal] = useState<Milestone | null>(null);
+
+  // Web3 Testnet Escrow Integration State
+  const [walletState, setWalletState] = useState<Web3WalletState>({
+    isConnected: false,
+    address: null,
+    chainId: null,
+    networkName: null,
+    balanceEth: null,
+  });
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
+
+  const handleConnectWeb3Wallet = async () => {
+    setIsConnectingWallet(true);
+    try {
+      const state = await web3Service.connectWallet();
+      setWalletState(state);
+      showToast({
+        type: 'success',
+        title: 'MetaMask Connected',
+        message: `Connected to ${state.networkName} (${state.address?.slice(0, 6)}...${state.address?.slice(-4)}). Test ETH balance: ${Number(state.balanceEth).toFixed(4)} ETH.`,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Wallet connection failed';
+      showToast({
+        type: 'error',
+        title: 'Wallet Connection Error',
+        message: msg,
+      });
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
 
   // Accounting Model: Derive all stats dynamically across projects (or filtered project)
   const filteredProjects = selectedProjectFilter === 'ALL'
@@ -126,6 +160,55 @@ export const PaymentsPage: React.FC = () => {
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      {/* Web3 Testnet Escrow Demonstration Card */}
+      <div className="p-4 rounded-2xl bg-white border border-[#E5DFD5] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+            <h3 className="text-xs font-bold text-[#1C1917] uppercase tracking-wider">
+              On-Chain Testnet Escrow (Local / Sepolia Test ETH Only)
+            </h3>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#FAF7F2] border border-[#E5DFD5] text-[#264235] font-bold">
+              0x5FbD...0aa3
+            </span>
+          </div>
+          <p className="text-xs text-[#605A53]">
+            {walletState.isConnected ? (
+              <span>
+                Connected to <strong>{walletState.networkName}</strong> as{' '}
+                <code className="font-mono text-[#264235] bg-[#FAF7F2] px-1 rounded">
+                  {walletState.address}
+                </code>{' '}
+                &bull; Balance: <strong>{Number(walletState.balanceEth).toFixed(4)} test ETH</strong>
+              </span>
+            ) : (
+              <span>
+                Verified Solidity smart contract deployed. Connect MetaMask with test ETH to inspect verified contract state. No real funds ever touched.
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {walletState.isConnected ? (
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#285C42] bg-[#EBF4EE] px-3 py-1.5 rounded-xl border border-[#C2DEC9]">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Wallet Connected</span>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              isLoading={isConnectingWallet}
+              onClick={handleConnectWeb3Wallet}
+              className="border-[#264235] text-[#264235] hover:bg-[#FAF7F2]"
+            >
+              Connect MetaMask (Testnet)
+            </Button>
+          )}
         </div>
       </div>
 

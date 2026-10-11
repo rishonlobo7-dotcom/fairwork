@@ -18,6 +18,8 @@ import { DisputesPage } from './pages/app/DisputesPage';
 import { ActivityPage } from './pages/app/ActivityPage';
 import { SettingsPage } from './pages/app/SettingsPage';
 
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
 export function App() {
   return (
     <FairworkProvider>
@@ -28,11 +30,25 @@ export function App() {
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/login" element={<LoginPage />} />
 
-          {/* App Workspace Shell */}
-          <Route path="/app" element={<AppShell />}>
+          {/* App Workspace Shell Protected by Server/Profile Authentication */}
+          <Route
+            path="/app"
+            element={
+              <ProtectedRoute>
+                <AppShell />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<DashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
-            <Route path="projects/new" element={<NewProjectPage />} />
+            <Route
+              path="projects/new"
+              element={
+                <ProtectedRoute allowedRoles={['CLIENT', 'ADMIN']}>
+                  <NewProjectPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="agreements" element={<AgreementsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
